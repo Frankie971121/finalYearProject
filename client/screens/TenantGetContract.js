@@ -32,7 +32,8 @@ export default function GetContract({navigation}) {
         landlordAddress: '',
         totalRentLeft: '',
         tenantAddress: '',
-        contractAddr: ''
+        contractAddr: '',
+        tenantName: ''
     });
     const testingDataRef = useRef();
     testingDataRef.current = testingData;
@@ -42,7 +43,8 @@ export default function GetContract({navigation}) {
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', async () => {
-            if(tenantAddress1 != '') {
+            if(tenantAddress1Ref.current != '') {
+                setContractData([]);
                 const networkId = await web3.eth.net.getId();
                 const deployedNetwork = SmartRentContractFactory.networks[networkId];
                 const instance = new web3.eth.Contract(
@@ -81,7 +83,8 @@ export default function GetContract({navigation}) {
                                 'hasPaidDeposit',
                                 'landlordAddress',
                                 'totalRentLeft',
-                                'tenantAddress'];
+                                'tenantAddress',
+                                'tenantName'];
                     return Promise.all(methods.map((method) => {
                         return instanceClone.methods[method + '()']().call();
                     }))
@@ -120,6 +123,9 @@ export default function GetContract({navigation}) {
                                     break;
                                 case 10:
                                     setTestingData((prevState) => ({...prevState, tenantAddress: data}));
+                                    break;
+                                case 11:
+                                    setTestingData((prevState) => ({...prevState, tenantName: data}));
                                     setTestingData((prevState) => ({...prevState, contractAddr: address}));
                                     setContractData(contractData => [...contractData, testingDataRef.current]);
                                     setTestingData({
@@ -133,7 +139,8 @@ export default function GetContract({navigation}) {
                                         hasPaidDeposit: '',
                                         landlordAddress: '',
                                         totalRentLeft: '',
-                                        tenantAddress: ''
+                                        tenantAddress: '',
+                                        tenantName: ''
                                     });
                                     setContractAddr('');
                                     break;
@@ -210,7 +217,8 @@ export default function GetContract({navigation}) {
                         'hasPaidDeposit',
                         'landlordAddress',
                         'totalRentLeft',
-                        'tenantAddress'];
+                        'tenantAddress',
+                        'tenantName'];
             return Promise.all(methods.map((method) => {
                 return instanceClone.methods[method + '()']().call();
             }))
@@ -249,6 +257,9 @@ export default function GetContract({navigation}) {
                             break;
                         case 10:
                             setTestingData((prevState) => ({...prevState, tenantAddress: data}));
+                            break;
+                        case 11:
+                            setTestingData((prevState) => ({...prevState, tenantName: data}));
                             setTestingData((prevState) => ({...prevState, contractAddr: address}));
                             setContractData(contractData => [...contractData, testingDataRef.current]);
                             setTestingData({
@@ -262,7 +273,8 @@ export default function GetContract({navigation}) {
                                 hasPaidDeposit: '',
                                 landlordAddress: '',
                                 totalRentLeft: '',
-                                tenantAddress: ''
+                                tenantAddress: '',
+                                tenantName: ''
                             });
                             setContractAddr('');
                             break;
@@ -292,7 +304,7 @@ export default function GetContract({navigation}) {
             <Text style={styles.title}>My Tenancy Contracts</Text>
             <View style={styles.table}>
                 <View style={{width: '23%', alignItems: 'center'}}>
-                    <Text style={styles.header}>Landlord</Text>
+                    <Text style={styles.header}>Status</Text>
                 </View>
                 <View style={{width: '60%', alignItems: 'center'}}>
                     <Text style={styles.header}>Contract Address</Text>

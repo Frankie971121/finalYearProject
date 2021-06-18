@@ -5,11 +5,10 @@ import './SmartRentContract.sol';
 contract SmartRentFactory {
 
     event NewLease(address contractAddress, address indexed landlord, address indexed tenant);
-
-    string name = "Connected ";
-
+    
     function createRent(
         string memory _landlord,
+        string memory _tenant,
         address payable _landlordAddress,
         string memory _roomAddress,
         uint256 _startDate,
@@ -19,7 +18,15 @@ contract SmartRentFactory {
         address payable _tenantAddress
     ) public 
     {
-        address newContract = address(new SmartRentContract(_landlord, _landlordAddress, _roomAddress, _startDate, _endDate, _deposit, _rent, _tenantAddress));
+        address newContract = address(new SmartRentContract(_landlord,
+                                                            _tenant,
+                                                            _landlordAddress,
+                                                            _roomAddress,
+                                                            _startDate,
+                                                            _endDate,
+                                                            _deposit,
+                                                            _rent,
+                                                            _tenantAddress));
         emit NewLease(newContract, _landlordAddress, _tenantAddress);
     }
 }

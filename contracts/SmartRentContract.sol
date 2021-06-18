@@ -17,6 +17,7 @@ contract SmartRentContract {
 
     address payable public landlordAddress;
     string public landlordName;
+    string public tenantName;
     
     bool public isSigned = false;
     bool public hasPaidDeposit = false;
@@ -34,6 +35,7 @@ contract SmartRentContract {
     uint256 public rentHavePaid = 0;
 
     constructor(string memory _landlord,
+            string memory _tenant,
             address payable _landlordAddress,
             string memory _roomAddress,
             uint256 _startDate,
@@ -43,6 +45,7 @@ contract SmartRentContract {
             address payable _tenantAddress)
         public {
             landlordName = _landlord;
+            tenantName = _tenant;
             landlordAddress = _landlordAddress;
             roomAddress = _roomAddress;
             startDate = _startDate;
@@ -54,12 +57,12 @@ contract SmartRentContract {
     }
 
     modifier landlordOnly() {
-        require(msg.sender == landlordAddress);
+        require(msg.sender == landlordAddress, "Only landlord can call this function");
         _;
     }
 
     modifier tenantOnly() {
-        require(msg.sender == tenantAddress);
+        require(msg.sender == tenantAddress, "Only tenant can call this function");
         _;
     }
 
@@ -86,8 +89,9 @@ contract SmartRentContract {
         emit TenantSigned(msg.sender);
     }
 
-    function payDeposit() external payable {
+    function payDeposit() external payable tenantOnly {
         require(hasPaidDeposit == false, "Tenant cannot pay deposit more than one time");
+        require(isSigned == true, "Tenant need to sign the contract before paying deposit");
         hasPaidDeposit = true;
         depositInContract = depositInContract + msg.value;
         emit DepositPaid(msg.sender, msg.value);
@@ -106,6 +110,7 @@ contract SmartRentContract {
     function payRent() external payable tenantOnly {
         require(isSigned == true);
         require(hasPaidDeposit == true, "Tenant need to pay deposit first");
+        require(msg.value <= totalRentLeft, "Amount inserted has exceed outstanding rent");
         require(block.timestamp < endDate);
         totalRentLeft = totalRentLeft - msg.value;
         rentHavePaid = msg.value;

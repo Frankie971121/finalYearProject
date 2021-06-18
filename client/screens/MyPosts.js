@@ -9,10 +9,10 @@ export default function MyPosts({ navigation }) {
 
     const [post, setPost] = useState([]);
     const [loading, setLoading] = useState(true);
-    const isFocused = useIsFocused();
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
+                        setPost([]);
                         db.collection('posts')
                         .doc(auth.currentUser.uid)
                         .collection('userPosts')

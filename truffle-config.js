@@ -18,19 +18,14 @@ async function awaitWrapper(){
 awaitWrapper()
 
 module.exports = {
-  // See <http://truffleframework.com/docs/advanced/configuration>
-  // to customize your Truffle configuration!
 
-  // The following line will put the compiled contracts and associated info at ./client/contracts
   contracts_build_directory: path.join(__dirname, "client/contracts"),
 
   networks: {
-    // Use the development network if you are using @celo/ganache-cli
-    // https://www.npmjs.com/package/@celo/ganache-cli
     development: {
      host: "127.0.0.1",
      port: 8545,
-     network_id: "*",
+     network_id: "1234",
     },
     alfajores: {
       provider: kit.web3.currentProvider,

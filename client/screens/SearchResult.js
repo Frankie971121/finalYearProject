@@ -7,6 +7,7 @@ import EmptyResult from './EmptyResult'
 import Ionicons from 'react-native-vector-icons/Ionicons'
 import { Picker } from '@react-native-picker/picker'
 import { Overlay } from 'react-native-elements'
+import { and } from 'react-native-reanimated'
 
 const {width, height} = Dimensions.get('window');
 

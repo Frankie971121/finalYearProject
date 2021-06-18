@@ -5,6 +5,7 @@ import HomeScreen from '../screens/Home'
 import MyAccountScreen from '../screens/Account'
 import CreatePostScreen from '../screens/CreatePost'
 import MyPostsScreen from '../screens/MyPosts'
+import SavedPostScreen from '../screens/SavedList'
 import CreateContractScreen from '../screens/CreateContracts'
 import TenantReadContractScreen from '../screens/TenantGetContract'
 import LandlordReadContractScreen from '../screens/LandlordGetContract'
@@ -43,25 +44,38 @@ const HomeNavigator = (props) => {
     return (
         <Tab.Navigator initialRouteName="Home"
             labeled={false}
-            barStyle={{ backgroundColor: '#F68544' }} >
+            barStyle={{ backgroundColor: '#E67451'}} >
             <Tab.Screen name="Home" component={HomeScreen}
                 options={{
                     tabBarIcon: ({color, size}) => (
                         <Ionicons name="home-outline" color="white" size={24} />
                     )
                 }} />
+
+            {user.role == 'Landlord' ? 
             <Tab.Screen name="MyPosts" component={MyPostsScreen}
                 options={{
                     tabBarIcon: ({color, size}) => (
                         <MaterialCommunityIcons name="post-outline" color="white" size={24} />
                     )
-                }} />
+                }} /> : null}
+
+            {user.role == 'Landlord' ? 
             <Tab.Screen name="CreatePost" component={CreatePostScreen}
                 options={{
                     tabBarIcon: ({color, size}) => (
                         <AntDesign name="plussquareo" color="white" size={23} />
                     )
-                }} />
+                }} /> : null}
+
+            {user.role == 'Tenant' ? 
+            <Tab.Screen name="SavedPost" component={SavedPostScreen}
+            options={{
+                tabBarIcon: ({color, size}) => (
+                    <AntDesign name="hearto" color="white" size={22} />
+                )
+            }} /> : null}
+
             {user.role == 'Landlord' ? 
                 <Tab.Screen name="CreateSmartContract" component={CreateContractScreen}
                 options={{
@@ -69,6 +83,7 @@ const HomeNavigator = (props) => {
                         <AntDesign name="addfile" color="white" size={22} />
                     )
                 }} /> : null}
+
             {user.role == 'Landlord' ?
                 <Tab.Screen name="LandlordReadContract" component={LandlordReadContractScreen}
                 options={{
@@ -76,6 +91,7 @@ const HomeNavigator = (props) => {
                         <FontAwesome5 name="file-contract" color="white" size={22} />
                     )
                 }} /> : null}
+
             {user.role == 'Tenant' ?
             <Tab.Screen name="TenantReadContract" component={TenantReadContractScreen}
             options={{
@@ -83,6 +99,7 @@ const HomeNavigator = (props) => {
                     <FontAwesome5 name="file-contract" color="white" size={22} />
                 )
             }} /> : null}
+
             <Tab.Screen name="MyAccount" component={MyAccountScreen}
                 options={{
                     tabBarIcon: ({color, size}) => (

@@ -35,7 +35,9 @@ export default function LandlordGetContract({navigation}) {
         landlordAddress: '',
         totalRentLeft: '',
         tenantAddress: '',
-        contractAddr: ''
+        contractAddr: '',
+        rentHavePaid: '',
+        tenantName: ''
     });
     const testingDataRef = useRef();
     testingDataRef.current = testingData;
@@ -45,19 +47,20 @@ export default function LandlordGetContract({navigation}) {
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', async () => {
-            if(landlordAddress1 != '') {
+            if(landlordAddress1Ref.current != '') {
+                setContractData([]);
                 const networkId = await web3.eth.net.getId();
-                const deployedNetwork = SmartRentContractFactory.networks[networkId];
-                const instance = new web3.eth.Contract(
+                const deployedNetwork1 = SmartRentContractFactory.networks[networkId];
+                const instance1 = new web3.eth.Contract(
                     SmartRentContractFactory.abi,
-                    deployedNetwork && deployedNetwork.address);
+                    deployedNetwork1 && deployedNetwork1.address);
 
-                const tenancyInstance = new web3.eth.Contract(
+                const tenancyInstance1 = new web3.eth.Contract(
                     SmartRentContract.abi,
 
                 );
 
-                instance.getPastEvents('NewLease', {
+                instance1.getPastEvents('NewLease', {
                     filter: {landlord: landlordAddress1},
                     fromBlock: 0,
                     toBlock: 'latest'
@@ -66,13 +69,13 @@ export default function LandlordGetContract({navigation}) {
                     return logs.map((log) => log.returnValues.contractAddress);
                 })
                 .then((addresses) => {
-                    addresses.forEach(getSmartTenancyData);
+                    addresses.forEach(getSmartTenancyData1);
                 });
 
                 setLoading(false);
 
-                function getSmartTenancyData(address) {
-                    let instanceClone = tenancyInstance.clone();
+                function getSmartTenancyData1(address) {
+                    let instanceClone = tenancyInstance1.clone();
                     instanceClone.options.address = address;
                     let methods = ['landlordName',
                                 'roomAddress',
@@ -84,7 +87,9 @@ export default function LandlordGetContract({navigation}) {
                                 'hasPaidDeposit',
                                 'landlordAddress',
                                 'totalRentLeft',
-                                'tenantAddress'];
+                                'tenantAddress',
+                                'rentHavePaid',
+                                'tenantName'];
                     return Promise.all(methods.map((method) => {
                         return instanceClone.methods[method + '()']().call();
                     }))
@@ -123,6 +128,12 @@ export default function LandlordGetContract({navigation}) {
                                     break;
                                 case 10:
                                     setTestingData((prevState) => ({...prevState, tenantAddress: data}));
+                                    break;
+                                case 11:
+                                    setTestingData((prevState) => ({...prevState, rentHavePaid: data}));
+                                    break;
+                                case 12:
+                                    setTestingData((prevState) => ({...prevState, tenantName: data}));
                                     setTestingData((prevState) => ({...prevState, contractAddr: address}));
                                     setContractData(contractData => [...contractData, testingDataRef.current]);
                                     setTestingData({
@@ -136,7 +147,9 @@ export default function LandlordGetContract({navigation}) {
                                         hasPaidDeposit: '',
                                         landlordAddress: '',
                                         totalRentLeft: '',
-                                        tenantAddress: ''
+                                        tenantAddress: '',
+                                        rentHavePaid: '',
+                                        tenantName: ''
                                     });
                                     setContractAddr('');
                                     break;
@@ -212,7 +225,9 @@ export default function LandlordGetContract({navigation}) {
                         'hasPaidDeposit',
                         'landlordAddress',
                         'totalRentLeft',
-                        'tenantAddress'];
+                        'tenantAddress',
+                        'rentHavePaid',
+                        'tenantName'];
             return Promise.all(methods.map((method) => {
                 return instanceClone.methods[method + '()']().call();
             }))
@@ -251,6 +266,12 @@ export default function LandlordGetContract({navigation}) {
                             break;
                         case 10:
                             setTestingData((prevState) => ({...prevState, tenantAddress: data}));
+                            break;
+                        case 11:
+                            setTestingData((prevState) => ({...prevState, rentHavePaid: data}));
+                            break;
+                        case 12:
+                            setTestingData((prevState) => ({...prevState, tenantName: data}));
                             setTestingData((prevState) => ({...prevState, contractAddr: address}));
                             setContractData(contractData => [...contractData, testingDataRef.current]);
                             setTestingData({
@@ -264,7 +285,9 @@ export default function LandlordGetContract({navigation}) {
                                 hasPaidDeposit: '',
                                 landlordAddress: '',
                                 totalRentLeft: '',
-                                tenantAddress: ''
+                                tenantAddress: '',
+                                rentHavePaid: '',
+                                tenantName: ''
                             });
                             setContractAddr('');
                             break;

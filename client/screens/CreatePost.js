@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Alert, Modal, Text, Image, TextInput, StyleSheet, StatusBar, Dimensions, ScrollView, Pressable, TouchableOpacity } from 'react-native'
+import { View, Alert, Text, Image, TextInput, StyleSheet, StatusBar, Dimensions, ScrollView, Pressable, TouchableOpacity } from 'react-native'
 import CheckBox from '@react-native-community/checkbox'
 import { useState, useEffect, useRef } from 'react'
 import { Picker } from '@react-native-picker/picker'
@@ -7,8 +7,7 @@ import Fontisto from 'react-native-vector-icons/Fontisto'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
 import FontAwesome from 'react-native-vector-icons/FontAwesome'
-import { AssetsSelector } from 'expo-images-picker'
-import Ionicons from 'react-native-vector-icons/Ionicons'
+import * as ImagePicker from 'expo-image-picker'
 import { Overlay } from 'react-native-elements'
 import { auth, db, storage } from '../utils/FirebaseConfig'
 import { useNavigation } from '@react-navigation/native'
@@ -33,18 +32,12 @@ export default function CreatePost({ navigation }) {
             setBathroom(false);
             setPool(false);
 
-            setModalVisible(false);
             setShowImage1(false);
-            setShowImage2(false);
-            setShowImage3(false);
             setImage1(null);
-            setImage2(null);
-            setImage3(null);
-            setImages([]);
-            setNum(0);
 
             setUploading(false);
             setUrls([]);
+            setNewId(null);
         });
 
         return unsubscribe;
@@ -65,90 +58,125 @@ export default function CreatePost({ navigation }) {
     const [bathroom, setBathroom] = useState(false);
     const [pool, setPool] = useState(false);
 
-    const [modalVisible, setModalVisible] = useState(false);
     const [showImage1, setShowImage1] = useState(false);
-    const [showImage2, setShowImage2] = useState(false);
-    const [showImage3, setShowImage3] = useState(false);
     const [image1, setImage1] = useState(null);
-    const [image2, setImage2] = useState(null);
-    const [image3, setImage3] = useState(null);
-    const [images, setImages] = useState([]);
-    const [num, setNum] = useState(0);
-
-    const onDone = (data:Asset[]) => {
-
-        for(var i = 0; i < data.length; i++) {
-            const value = data[i].uri;
-            setImages(prev => [...prev, value]);
-        };
-        
-        if(data.length == 3) {
-            setShowImage1(true);
-            setImage1(data[0].uri);
-            setShowImage2(true);
-            setImage2(data[1].uri);
-            setShowImage3(true);
-            setImage3(data[2].uri);
-            setNum(3);
-        }
-        
-        if(data.length == 2) {
-            setShowImage1(true);
-            setImage1(data[0].uri);
-            setShowImage2(true);
-            setImage2(data[1].uri);
-            setNum(2);
-        }
-
-        if(data.length == 1) {
-            setShowImage1(true);
-            setImage1(data[0].uri);
-            setNum(1);
-        }
-        
-        setModalVisible(false);
-    }
 
     const [uploading, setUploading] = useState(false);
     const [urls, setUrls] = useState([]);
     const urlsRef = useRef();
     urlsRef.current = urls;
 
-    const savePost = async () => {
+    var PUSH_CHARS = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+    var lastPushTime = 0;
+    var lastRandChars = [];
+    const [newId, setNewId] = useState(null);
+    const newIdRef = useRef();
+    newIdRef.current = newId;
 
-        setUploading(true);
+    const [wrongPrice, setWrongPrice] = useState(false);
+    const [wrongSize, setWrongSize] = useState(false);
 
-        for (var i = 0; i < num; i++) {
-            var imageFile = images[i];
-
-            await uploadImageAsPromise(imageFile);
+    const generateId = () => {       
+        var now = new Date().getTime();
+        var duplicateTime = (now === lastPushTime);
+        lastPushTime = now;
+    
+        var timeStampChars = new Array(8);
+        for (var i = 7; i >= 0; i--) {
+            timeStampChars[i] = PUSH_CHARS.charAt(now % 64);
+            now = Math.floor(now / 64);
         }
+        if (now !== 0) throw new Error('We should have converted the entire timestamp.');
 
-        db.collection('posts')
-        .doc(auth.currentUser.uid)
-        .collection('userPosts')
-        .add({
-            title: title,
-            price: Number(price),
-            type: roomType,
-            size: Number(size),
-            description: description,
-            address: address,
-            preference: preference,
-            location: area,
-            wifi: wifi,
-            aircon: aircon,
-            gym: gym,
-            bathroom: bathroom,
-            pool: pool,
-            postUrl: urlsRef.current,
-            userId: auth.currentUser.uid
-        })
-        .then(() => {
-            setUploading(false);
-            Alert.alert('Your Post has been created successfully!');
-            navigationTo.navigate('Home');
+        let id = timeStampChars.join('');
+
+        if (!duplicateTime) {
+            for (i = 0; i < 12; i++) {
+                lastRandChars[i] = Math.floor(Math.random() * 64);
+            }
+        }
+        else {
+            for (i = 11; i >= 0 && lastRandChars[i] === 63; i--) {
+                lastRandChars[i] = 0;
+            }
+            lastRandChars[i]++;
+        }
+        for (i = 0; i < 12; i++) {
+            id += PUSH_CHARS.charAt(lastRandChars[i]);
+        }
+        if(id.length != 20) throw new Error('Length should be 20.');
+
+        setNewId(id);
+    };
+
+    const pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
         });
+
+        if (!result.cancelled) {
+            setImage1(result.uri);
+            setShowImage1(true);
+        }
+    };
+
+    const checkValidity = () => {
+        if(isNaN(price)) {
+            setWrongPrice(true);
+        }
+        else {
+            setWrongPrice(false);
+        }
+        if(isNaN(size)) {
+            setWrongSize(true);
+        }
+        else {
+            setWrongSize(false);
+        }
+    }
+
+    const savePost = async () => {
+        if(wrongPrice == false && wrongSize == false) {
+
+            setUploading(true);
+
+            generateId();
+            await uploadImageAsPromise(image1);
+
+            db.collection('posts')
+            .doc(auth.currentUser.uid)
+            .collection('userPosts')
+            .doc(newIdRef.current)
+            .set({
+                title: title,
+                price: Number(price),
+                type: roomType,
+                size: Number(size),
+                description: description,
+                address: address,
+                preference: preference,
+                location: area,
+                wifi: wifi,
+                aircon: aircon,
+                gym: gym,
+                bathroom: bathroom,
+                pool: pool,
+                postUrl: urlsRef.current,
+                userId: auth.currentUser.uid,
+                postUid: newIdRef.current
+            })
+            .then(() => {
+                setUploading(false);
+                Alert.alert('Your Post has been created successfully!');
+                navigationTo.navigate('Home');
+            });
+        }
+        else {
+            Alert.alert('Please fill in your information with correct format!');
+        }
     };
 
     async function uploadImageAsPromise (imageFile) {
@@ -200,6 +228,9 @@ export default function CreatePost({ navigation }) {
                     setPrice(inputPrice);
                 }}
             />
+            {wrongPrice ? (
+                <Text style={{color: 'red', fontSize: 11, marginLeft: 50, marginTop: '0.5%'}}>* Format of price is incorrect</Text>
+                ) : null}
 
             <Text style={styles.title}>Room Type</Text>
             <Picker
@@ -225,6 +256,9 @@ export default function CreatePost({ navigation }) {
                     setSize(inputSize);
                 }}
             />
+            {wrongSize ? (
+                <Text style={{color: 'red', fontSize: 11, marginLeft: 50, marginTop: '0.5%'}}>* Format of room size is incorrect</Text>
+                ) : null}
             
             <Text style={styles.title}>Description</Text>
             <TextInput
@@ -332,56 +366,12 @@ export default function CreatePost({ navigation }) {
                 </View>
             </View>
 
-            <Modal
-                animationType="fade"
-                transparent={false}
-                visible={modalVisible}
-                onRequestClose={() => {setModalVisible(!modalVisible);}}>
-
-                <AssetsSelector
-                    options={{
-                        assetsType: ['photo'],
-                        noAssets: {
-                            Component: () => <View></View>,
-                        },
-                        maxSelections: 5,
-                        margin: 2,
-                        portraitCols: 4,
-                        landscapeCols: 5,
-                        widgetWidth: 100,
-                        widgetBgColor: 'black',
-                        videoIcon: {
-                            Component: Ionicons,
-                            iconName: 'ios-videocam',
-                            color: 'green',
-                            size: 22,
-                        },
-                        selectedIcon: {
-                            Component: Ionicons,
-                            iconName: 'checkmark-outline',
-                            color: 'white',
-                            bg: '#4fffc880',
-                            size: 26,
-                        },
-                        defaultTopNavigator: {
-                            continueText: 'DONE ',
-                            goBackText: 'BACK ',
-                            textStyle: styles.textStyle,
-                            buttonStyle: styles.buttonStyle,
-                            backFunction: () => setModalVisible(!modalVisible),
-                            doneFunction: (data) => onDone(data),
-                        },                    
-                    }}
-                />
-            </Modal>
             <Pressable
                 style={styles.button}
-                onPress={() => setModalVisible(true)}>
-                <Text style={styles.image}>Uploads Images</Text>
+                onPress={pickImage}>
+                <Text style={styles.image}>Uploads Image</Text>
                 <View style={styles.pictureContainer}>
                     {showImage1 ? (<Image source={{uri: image1}} style={styles.picture} />) : null}
-                    {showImage2 ? (<Image source={{uri: image2}} style={styles.picture} />) : null}
-                    {showImage3 ? (<Image source={{uri: image3}} style={styles.picture} />) : null}
                 </View>
             </Pressable>
     
@@ -394,7 +384,10 @@ export default function CreatePost({ navigation }) {
                 
                 <TouchableOpacity
                     style={styles.roundButton}
-                    onPress={savePost}>
+                    onPress={() => {
+                        checkValidity();
+                        savePost();
+                    }}>
                     <Text style={{fontSize: 18, color: 'white'}}>Submit</Text>
                 </TouchableOpacity>
             </View>

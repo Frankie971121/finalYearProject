@@ -2,7 +2,7 @@ import React from 'react'
 import { useState, useEffect, useRef } from 'react'
 import '../global'
 import { web3, kit } from '../root'
-import { Pressable, Image, StyleSheet, Text, TextInput, Button, View, ActivityIndicator, Modal, StatusBar } from 'react-native'
+import { Pressable, StyleSheet, Text, TextInput, Button, View, ActivityIndicator, Modal, StatusBar, Alert } from 'react-native'
 import {
     requestTxSig,
     waitForSignedTxs,
@@ -26,13 +26,14 @@ const CreateContracts = () => {
     const [phoneNumber, setPhoneNumber] = useState('Not logged in');
     const [cUSDBalance, setcUSDBalance] = useState('Not logged in');
     const [smartRentContract, setSmartRentContract] = useState({});
-    const [contractName, setContractName] = useState('');
-    const [textInput, setTextInput] = useState('');
+    const smartRentContractRef = useRef();
+    smartRentContractRef.current = smartRentContract;
     const [deploying, setDeploying] = useState(false);
 
     const [modalVisible, setModalVisible] = useState(false);
 
     const [name, setName] = useState('');
+    const [tenantName, setTenantName] = useState('');
     const [roomAddress, setRoomAddress] = useState('');
     const [startDate, setStartDate] = useState(new Date());
     const startDateRef = useRef();
@@ -53,22 +54,15 @@ const CreateContracts = () => {
     const [startDateString, setStartDateString] = useState('');
     const [endDateString, setEndDateString] = useState('');
 
-    const [user, setUser] = useState();
     const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
+
+    const [wrongDeposit, setWrongDeposit] = useState(false);
+    const [wrongRent, setWrongRent] = useState(false);
     
     useEffect(() => {
         (async () => {
-            const networkId = await web3.eth.net.getId();
-            const deployedNetwork = SmartRentContract.networks[networkId];
-
-            // Create a new contract instance with the HelloWorld contract info
-            const instance = new web3.eth.Contract(
-                SmartRentContract.abi,
-                deployedNetwork && deployedNetwork.address
-            );
-
-            // Save the contract instance
-            setSmartRentContract(instance);
+            
             setLoading(false);
         })();
     }, []);
@@ -77,40 +71,80 @@ const CreateContracts = () => {
         return <ActivityIndicator />;
     }
 
+    const checkValidity = () => {
+        if(isNaN(deposit)) {
+            setWrongDeposit(true);
+        }
+        else {
+            setWrongDeposit(false);
+        }
+        if(isNaN(rent)) {
+            setWrongRent(true);
+        }
+        else {
+            setWrongRent(false);
+        }
+    }
+
     const deployContract = async () => {
-        const requestId = 'deploy_contract'
-        const dappName = 'Smart Rental'
-        const callback = Linking.makeUrl('/my/path')
+        if(wrongDeposit == false && wrongRent == false) {
 
-        let startDateUnix = moment(startDate, "YYYY-MM-DD").unix();
-        let endDateUnix = moment(endDate, "YYYY-MM-DD").unix();
-        let depositBigNum = new BigNumber(deposit * 10**18);
-        let rentBigNum = new BigNumber(rent * 10**18);
+            setUploading(true);
 
-        const txObject = await smartRentContract.methods.createRent(name, address, roomAddress, startDateUnix, endDateUnix, depositBigNum, rentBigNum, tenantAddress)
+            const networkId = await web3.eth.net.getId();
+            const deployedNetwork = SmartRentContract.networks[networkId];
 
-        requestTxSig(
-            kit,
-            [
-                {
-                    from: address,
-                    to: smartRentContract.options.address,
-                    tx: txObject,
-                    feeCurrency: FeeCurrency.cUSD
-                }
-            ],
-            { requestId, dappName, callback }
-        )
+            const instance = new web3.eth.Contract(
+                SmartRentContract.abi,
+                deployedNetwork && deployedNetwork.address
+            );
 
-        const dappkitResponse = await waitForSignedTxs(requestId)
-        const tx = dappkitResponse.rawTxs[0]
+            // Save the contract instance
+            setSmartRentContract(instance);
+            
+            const requestId = 'deploy_contract'
+            const dappName = 'Smart Rental'
+            const callback = Linking.makeUrl('/my/path')
 
-        // Get the transaction result, once it has been included in the Celo blockchain
-        let result = await toTxResult(kit.web3.eth.sendSignedTransaction(tx)).waitReceipt()
+            let startDateUnix = moment(startDate, "YYYY-MM-DD").unix();
+            let endDateUnix = moment(endDate, "YYYY-MM-DD").unix();
+            let depositBigNum = new BigNumber(deposit * 10**18);
+            let rentBigNum = new BigNumber(rent * 10**18);
 
-        console.log(`Smart Rent Contract Created receipt: `, result)
+            let newInstance = smartRentContractRef.current;
 
-        setModalVisible(false);
+            const txObject = await newInstance.methods.createRent(name, tenantName, address, roomAddress, startDateUnix, endDateUnix, depositBigNum, rentBigNum, tenantAddress)
+
+            requestTxSig(
+                kit,
+                [
+                    {
+                        from: address,
+                        to: newInstance.options.address,
+                        tx: txObject,
+                        feeCurrency: FeeCurrency.cUSD
+                    }
+                ],
+                { requestId, dappName, callback }
+            )
+
+            const dappkitResponse = await waitForSignedTxs(requestId)
+            const tx = dappkitResponse.rawTxs[0]
+
+            const t0 = performance.now();
+
+            // Get the transaction result, once it has been included in the Celo blockchain
+            let result = await toTxResult(kit.web3.eth.sendSignedTransaction(tx)).waitReceipt()
+
+            const t1 = performance.now();
+
+            setModalVisible(false);
+            setUploading(false);
+            Alert.alert("Smart Tenancy Contract has created successfully!");
+        }
+        else {
+            Alert.alert("Please fill in your information with correct format!");
+        }
     }
 
     const login = async () => {
@@ -237,6 +271,16 @@ const CreateContracts = () => {
                                 }}
                             />
 
+                            <Text style={styles.infoText}>Tenant's Name</Text>
+                            <TextInput
+                                style={styles.inputContainer}
+                                label="name"
+                                placeholder="Name"
+                                onChangeText={(inputTenantName) => {
+                                    setTenantName(inputTenantName);
+                                }}
+                            />
+
                             <Text style={styles.infoText}>Address of Rent Property</Text>
                             <TextInput
                                 style={styles.inputContainer}
@@ -247,57 +291,69 @@ const CreateContracts = () => {
                                 }}
                             />
 
-                            <Text style={styles.infoText}>Start Date</Text>
-                            <Pressable style={styles.date} onPress={showDatepicker1}>
-                                <Text style={styles.dateWidth}>{startDateString}</Text>                 
-                                <Fontisto name="date" size={18} />
-                            </Pressable>
-                            {show1 && (
-                                <DateTimePicker
-                                    testID="dateTimePicker"
-                                    value={startDate}
-                                    mode={mode1}
-                                    is24Hour={true}
-                                    display="default"
-                                    onChange={onChangeStartDate}
-                                />
-                            )}
+                            <View style={styles.dateContainer}>
+                                <View style={{width: '50%'}}>
+                                    <Text style={styles.infoText}>Start Date</Text>
+                                    <Pressable style={styles.date} onPress={showDatepicker1}>
+                                        <Text style={styles.dateWidth}>{startDateString}</Text>                 
+                                        <Fontisto name="date" size={18} />
+                                    </Pressable>
+                                    {show1 && (
+                                        <DateTimePicker
+                                            testID="dateTimePicker"
+                                            value={startDate}
+                                            mode={mode1}
+                                            is24Hour={true}
+                                            display="default"
+                                            onChange={onChangeStartDate}
+                                        />
+                                    )}
+                                </View>
 
-                            <Text style={styles.infoText}>End Date</Text>
-                            <Pressable style={styles.date} onPress={showDatepicker2}>
-                                <Text style={styles.dateWidth}>{endDateString}</Text>
-                                <Fontisto name="date" size={20} />
-                            </Pressable>
-                            {show2 && (
-                                <DateTimePicker
-                                    testID="dateTimePicker"
-                                    value={endDate}
-                                    mode={mode2}
-                                    is24Hour={true}
-                                    display="default"
-                                    onChange={onChangeEndDate}
-                                />
-                            )}
+                                <View style={{width: '50%'}}>
+                                    <Text style={styles.infoText}>End Date</Text>
+                                    <Pressable style={styles.date} onPress={showDatepicker2}>
+                                        <Text style={styles.dateWidth}>{endDateString}</Text>
+                                        <Fontisto name="date" size={18} />
+                                    </Pressable>
+                                    {show2 && (
+                                        <DateTimePicker
+                                            testID="dateTimePicker"
+                                            value={endDate}
+                                            mode={mode2}
+                                            is24Hour={true}
+                                            display="default"
+                                            onChange={onChangeEndDate}
+                                        />
+                                    )}
+                                </View>
+                            </View>
 
                             <Text style={styles.infoText}>Security Deposit in CELO (1 CELO = $5.09 = RM20.89)</Text>
                             <TextInput
-                                style={styles.inputContainer}
+                                style={[wrongDeposit ? styles.wrongFormatContainer : styles.inputContainer]}
                                 label="Deposit"
-                                placeholder="Deposit"
+                                placeholder="Security Deposit"
                                 onChangeText={(inputDeposit) => {
                                     setDeposit(inputDeposit);
                                 }}
                             />
+                            {wrongDeposit ? (
+                                <Text style={{color: 'red', fontSize: 11, marginTop: '0.5%'}}>* Format of Security Deposit is incorrect</Text>
+                                ) : null}
 
                             <Text style={styles.infoText}>Total Rent in CELO (1 CELO = $5.09 = RM20.89)</Text>
                             <TextInput
-                                style={styles.inputContainer}
+                                style={[wrongRent ? styles.wrongFormatContainer : styles.inputContainer]}
                                 label="Rent"
-                                placeholder="Monthly Rent"
+                                placeholder="Total Rent"
                                 onChangeText={(inputRent) => {
                                     setRent(inputRent);
                                 }}
                             />
+                            {wrongRent ? (
+                                <Text style={{color: 'red', fontSize: 11, marginTop: '0.5%'}}>* Format of Total Rent is incorrect</Text>
+                                ) : null}
 
                             <Text style={styles.infoText}>Tenant Address</Text>
                             <TextInput
@@ -311,10 +367,18 @@ const CreateContracts = () => {
                             />
                         </View>
                         <View style={styles.buttonContainer}>
+                            {uploading ? (
+                                <Overlay isVisible={true} overlayStyle={{width:150, alignItems: 'center'}}>
+                                    <Text>Deploying...</Text>
+                                </Overlay>
+                                ) : null}
                             <Button
                                 type="outline"
                                 title="Submit"
-                                onPress={deployContract}
+                                onPress={() => {
+                                    checkValidity();
+                                    deployContract();
+                                }}
                             />
                         </View>
                     </View>
@@ -399,6 +463,18 @@ const styles = StyleSheet.create({
         paddingRight: 13,
     },
 
+    wrongFormatContainer: {
+        width: '100%',
+        height: '6%',
+        elevation: 5,
+        borderWidth: 1,
+        backgroundColor: 'white',
+        borderRadius: 5,
+        paddingLeft: 13,
+        paddingRight: 13,
+        borderColor: 'red'
+    },
+
     inputContainer1: {
         width: '100%',
         height: '7%',
@@ -410,21 +486,27 @@ const styles = StyleSheet.create({
         paddingRight: 13,
     },
 
+    dateContainer: {
+        marginTop: '3%',
+        marginBottom: '1%',
+        flexDirection: 'row',
+    },
+
     date: {
         backgroundColor: 'white',
         borderWidth: 1,
         borderRadius: 5,
         paddingLeft: '4.8%',
-        width: '100%',
+        width: '94%',
         flexDirection: 'row',
         justifyContent: 'flex-start',
         alignItems: 'center',
-        height: '7%',
+        height: 30,
         elevation: 5,
     },
 
     dateWidth: {
-        width: '85%'
+        width: '80%'
     },
 
     buttonContainer: {

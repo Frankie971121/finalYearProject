@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, ActivityIndicator, Image, StyleSheet, StatusBar, Pressable } from 'react-native'
+import { View, Text, ActivityIndicator, Image, StyleSheet, StatusBar, Pressable, Alert } from 'react-native'
 import { db, auth } from '../utils/FirebaseConfig'
 import { useState, useEffect } from 'react'
 import { ImageBackground } from 'react-native';
@@ -24,7 +24,9 @@ export default function Account({ navigation }) {
     }, []);
 
     const onLogout = () => {
-
+        auth.signOut()
+        .then(() => {navigation.replace('Login');})
+        .catch((error) => alert(error.message));
     };
 
     if(loading) {
@@ -68,7 +70,7 @@ export default function Account({ navigation }) {
                     <Text style={styles.detail}>{user.role}</Text>
                 </View>
             </View>
-            <View style={{marginTop: 50, alignItems: 'center',}}>
+            <View style={{alignItems: 'center',}}>
                 <View style={{
                     borderBottomColor: 'black',
                     borderBottomWidth: 1.5,
@@ -77,7 +79,7 @@ export default function Account({ navigation }) {
                 <Pressable
                     style={styles.button}
                     onPress={onLogout} >
-                    <Text style={{color: 'red', fontSize: 18, marginTop: 35,}}>Logout</Text>
+                    <Text style={{color: 'red', fontSize: 18, marginTop: 35,}}>LOGOUT</Text>
                 </Pressable>
             </View>
         </View>
@@ -117,13 +119,14 @@ const styles = StyleSheet.create({
     bottomContainer: {
         marginLeft: '6%',
         marginRight: '6%',
+        height: '38%',
     },
 
     infoContainer: {
         backgroundColor: 'white',
         flexDirection: 'row',
         elevation: 5,
-        height: '12.7%',
+        height: '16.7%',
         borderRadius: 10,
         alignItems: 'center',
         paddingLeft: '4.3%',

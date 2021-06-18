@@ -2,12 +2,30 @@ import React from 'react'
 import { View, Pressable, Text, Image, StyleSheet, Dimensions, StatusBar } from 'react-native'
 import Ionicons from 'react-native-vector-icons/Ionicons'
 import { useNavigation } from '@react-navigation/native'
+import AntDesign from 'react-native-vector-icons/AntDesign'
+import { useState } from 'react'
+import { auth, db } from '../utils/FirebaseConfig'
+import * as firebase from 'firebase'
+import 'firebase/firestore';
 
 const PostResult = (props) => {
 
     const post = props.post;
+    const [saved, setSaved] = useState(false);
 
     const navigation = useNavigation();
+
+    const saveToList = () => {
+        console.log(post.key);
+        db.collection('users')
+            .doc(auth.currentUser.uid)
+            .update({
+                savedList: firebase.firestore.FieldValue.arrayUnion(post.key),
+            })
+            .then(() => {
+                setSaved(true);
+            });
+    }
 
     return (
         <Pressable style={styles.container}
@@ -26,7 +44,7 @@ const PostResult = (props) => {
                 />
             </View>
             <View style={styles.postInfo}>
-                <Text style={styles.description} numberOfLines={2}>{post.description}</Text>
+                <Text style={styles.description} numberOfLines={2}>{post.title}</Text>
                 <Text style={styles.price}>RM {post.price}/month</Text>
                 <Text style={styles.location}>Area: {post.location}</Text>
                 <View style={styles.room}>
@@ -34,6 +52,12 @@ const PostResult = (props) => {
                     <Text style={styles.type}>{post.type}</Text>
                 </View>
             </View>
+            <Pressable
+                    style={styles.button}
+                    onPress={saveToList} >
+                    {saved? <AntDesign name="heart" size={15} color="#F433FF"/> :
+                    <AntDesign name="hearto" size={15} color="#F433FF"/>}
+            </Pressable>
         </Pressable>
     )
 };
@@ -96,6 +120,13 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#504A4B',
         marginLeft: 5,
+    },
+
+    button: {
+        alignItems: 'center',
+        marginTop: '37%',
+        marginLeft: '87%',
+        position: 'absolute',
     },
 
 })

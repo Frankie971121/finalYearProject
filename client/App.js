@@ -7,6 +7,7 @@ import LoginScreen from './screens/Login';
 import EditPostScreen from './screens/EditPost';
 import SearchResultScreen from './screens/SearchResult';
 import PostDetailScreen from './screens/PostDetail';
+import ContractDetailScreen from './screens/ContractDetail';
 
 const Stack = createStackNavigator();
 
@@ -21,6 +22,7 @@ const App = () => {
         <Stack.Screen name="EditPost" component={EditPostScreen} options={{headerShown: false}} />
         <Stack.Screen name="SearchResult" component={SearchResultScreen} options={{headerShown: false}} />
         <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{headerShown: false}} />
+        <Stack.Screen name="ContractDetail" component={ContractDetailScreen} options={{headerShown: false}} />
       </Stack.Navigator>
     </NavigationContainer>
   );

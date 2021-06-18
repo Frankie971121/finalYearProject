@@ -61,6 +61,7 @@ const Register = ({navigation}) => {
                     month: month,
                     year: year,
                     photo: downloadURL,
+                    savedList: [],
                 }).then(() => {
                     Alert.alert("Registered Successfully.")
                     navigation.navigate('Login');

@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Pressable, Text, TextInput, Dimensions, StatusBar, StyleSheet } from 'react-native'
+import { View, Pressable, Text, Alert, StatusBar, StyleSheet } from 'react-native'
 import FontAwesome from 'react-native-vector-icons/FontAwesome'
 import { web3, kit } from '../root'
 import {
@@ -17,12 +17,12 @@ import SmartRentContract from '../contracts/SmartRentContract.json'
 const Contract = (props) => {
 
     const [visible, setVisible] = useState(false);
-    const [rentAmount, setRentAmount] = useState(null);
     const [isSigned, setIsSigned] = useState(props.contractData.isSigned);
     const [paidDeposit, setPaidDeposit] = useState(props.contractData.hasPaidDeposit);
     const depositInInt = props.contractData.deposit / 10**18;
     const rentInInt = props.contractData.rent / 10**18;
     const totalRentLeftInInt = props.contractData.totalRentLeft / 10**18;
+    const [availableRentInInt, setAvailableRentInInt] = useState(props.contractData.rentHavePaid / 10**18);
 
     const withdrawRent = async () => {
         const contractAddressInstance = props.contractData.contractAddr;
@@ -48,14 +48,21 @@ const Contract = (props) => {
                 }
             ],
             { requestId, dappName, callback }
-        )
+        ).then(() => console.log("done"))
+        .catch((err) => {
+            Alert.alert(
+                "Error!",
+                err.message
+            );
+        })
 
         const dappkitResponse = await waitForSignedTxs(requestId)
         const tx = dappkitResponse.rawTxs[0]
 
         // Get the transaction result, once it has been included in the Celo blockchain
         let result = await toTxResult(kit.web3.eth.sendSignedTransaction(tx)).waitReceipt()
-        console.log(`Rent Withdrawn Receipt: `, result)
+        setAvailableRentInInt(0);
+        Alert.alert("Withdraw Successful!");
     }
 
     const claimDeposit = async () => {
@@ -82,14 +89,19 @@ const Contract = (props) => {
                 }
             ],
             { requestId, dappName, callback }
-        )
+        ).then(() => console.log("done"))
+        .catch((err) => {
+            Alert.alert(
+                "Error!",
+                err.message
+            );
+        })
 
         const dappkitResponse = await waitForSignedTxs(requestId)
         const tx = dappkitResponse.rawTxs[0]
 
         // Get the transaction result, once it has been included in the Celo blockchain
         let result = await toTxResult(kit.web3.eth.sendSignedTransaction(tx)).waitReceipt()
-        console.log(`Deposit Claimed Receipt: `, result)
     }
 
     const startDate = moment.unix(props.contractData.startDate).format('DD-MM-YYYY');
@@ -124,12 +136,14 @@ const Contract = (props) => {
                             <Text style={styles.dataTitle}>From:  <Text style={styles.data}>{props.contractData.landlordAddress}</Text></Text>
                             <Text style={styles.dataTitle}>To:  <Text style={styles.data}>{props.contractData.tenantAddress}</Text></Text>
                             <Text style={styles.dataTitle}>Landlord:  <Text style={styles.data}>{props.contractData.landlordName}</Text></Text>
+                            <Text style={styles.dataTitle}>Tenant:  <Text style={styles.data}>{props.contractData.tenantName}</Text></Text>
                             <Text style={styles.dataTitle}>Room Address:  <Text style={styles.data}>{props.contractData.roomAddress}</Text></Text>
                             <Text style={styles.dataTitle}>Start Date:  <Text style={styles.data}>{startDate}</Text></Text>
                             <Text style={styles.dataTitle}>End Date:  <Text style={styles.data}>{endDate}</Text></Text>
                             <Text style={styles.dataTitle}>Deposit:  <Text style={styles.data}>{depositInInt} CELO</Text></Text>
                             <Text style={styles.dataTitle}>Total Rent:  <Text style={styles.data}>{rentInInt} CELO</Text></Text>
                             <Text style={styles.dataTitle}>Outstanding Rent:  <Text style={styles.data}>{totalRentLeftInInt} CELO</Text></Text>
+                            <Text style={styles.dataTitle}>Available Rent to Withdraw:  <Text style={styles.data}>{availableRentInInt} CELO</Text></Text>
                             <Text style={styles.dataTitle}>Signed:  {isSigned ? <FontAwesome name="check" size={18} /> : <FontAwesome name="close" size={18} />}</Text>
                             <Text style={styles.dataTitle}>Deposit Paid:  {paidDeposit ? <FontAwesome name="check" size={18} /> : <FontAwesome name="close" size={18} />}</Text>
                             <View style={styles.signContainer}>
@@ -208,7 +222,7 @@ const styles = StyleSheet.create({
     },
 
     overlay: {
-        height: '82%',
+        height: '86%',
         width: '85%',
         borderRadius: 20,
         alignItems: 'center',

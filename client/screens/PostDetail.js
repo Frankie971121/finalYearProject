@@ -42,11 +42,6 @@ const PostDetail = (props) => {
     const [showBathroom, setShowBathroom] = useState(props.route.params.post.bathroom);
     const [showPool, setShowPool] = useState(props.route.params.post.pool);
 
-    
-    const changeImage = (nativeEvent) => {
-        
-    };
-
     if(loading) {
         return <ActivityIndicator />;
     }
