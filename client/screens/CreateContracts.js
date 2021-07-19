@@ -16,7 +16,7 @@ import SmartRentContract from '../contracts/SmartRentFactory.json'
 import { Overlay } from 'react-native-elements'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import Fontisto from 'react-native-vector-icons/Fontisto'
-import BigNumber from "bignumber.js";
+import BigNumber from "bignumber.js"
 import moment from 'moment'
 
 const CreateContracts = () => {
@@ -25,10 +25,6 @@ const CreateContracts = () => {
     const [address, setAddress] = useState('Not logged in');
     const [phoneNumber, setPhoneNumber] = useState('Not logged in');
     const [cUSDBalance, setcUSDBalance] = useState('Not logged in');
-    const [smartRentContract, setSmartRentContract] = useState({});
-    const smartRentContractRef = useRef();
-    smartRentContractRef.current = smartRentContract;
-    const [deploying, setDeploying] = useState(false);
 
     const [modalVisible, setModalVisible] = useState(false);
 
@@ -98,9 +94,6 @@ const CreateContracts = () => {
                 SmartRentContract.abi,
                 deployedNetwork && deployedNetwork.address
             );
-
-            // Save the contract instance
-            setSmartRentContract(instance);
             
             const requestId = 'deploy_contract'
             const dappName = 'Smart Rental'
@@ -109,24 +102,31 @@ const CreateContracts = () => {
             let startDateUnix = moment(startDate, "YYYY-MM-DD").unix();
             let endDateUnix = moment(endDate, "YYYY-MM-DD").unix();
             let depositBigNum = new BigNumber(deposit * 10**18);
+            let depositString = depositBigNum.toString();
             let rentBigNum = new BigNumber(rent * 10**18);
+            let rentString = rentBigNum.toString();
 
-            let newInstance = smartRentContractRef.current;
 
-            const txObject = await newInstance.methods.createRent(name, tenantName, address, roomAddress, startDateUnix, endDateUnix, depositBigNum, rentBigNum, tenantAddress)
+            const txObject = await instance.methods.createRent(name, tenantName, address, roomAddress, startDateUnix, endDateUnix, depositString, rentString, tenantAddress);
 
             requestTxSig(
                 kit,
                 [
                     {
                         from: address,
-                        to: newInstance.options.address,
+                        to: instance.options.address,
                         tx: txObject,
                         feeCurrency: FeeCurrency.cUSD
                     }
                 ],
                 { requestId, dappName, callback }
-            )
+            ).then(() => console.log("done"))
+            .catch((err) => {
+                Alert.alert(
+                    "Error!",
+                    err.message
+                );
+            })
 
             const dappkitResponse = await waitForSignedTxs(requestId)
             const tx = dappkitResponse.rawTxs[0]
@@ -244,11 +244,6 @@ const CreateContracts = () => {
                         <Text style={styles.contractText}>Create Contract</Text>
                     </Pressable>
                 </View>
-                {deploying ? (
-                    <Overlay isVisible={true} overlayStyle={{width:150, alignItems: 'center'}}>
-                        <Text>Creating...</Text>
-                    </Overlay>
-                    ) : null}
             </View>
 
             <Modal

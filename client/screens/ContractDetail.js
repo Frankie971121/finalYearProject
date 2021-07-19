@@ -183,7 +183,13 @@ export default function ContractDetail(props) {
                 }
             ],
             { requestId, dappName, callback }
-        )
+        ).then(() => console.log("done"))
+        .catch((err) => {
+            Alert.alert(
+                "Error!",
+                err.message
+            );
+        })
 
         const dappkitResponse = await waitForSignedTxs(requestId)
         const tx = dappkitResponse.rawTxs[0]

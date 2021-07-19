@@ -57,7 +57,7 @@ export default function GetContract({navigation}) {
                 );
 
                 instance.getPastEvents('NewLease', {
-                    filter: {tenant: tenantAddress1},
+                    filter: {tenant: tenantAddress1Ref.current},
                     fromBlock: 0,
                     toBlock: 'latest'
                 })
